@@ -3,6 +3,7 @@
 
 import argparse
 import paramiko
+import configparser
 
 import heures
 
@@ -28,12 +29,12 @@ def adapter_modèle(modèle: str,
                    arguments: argparse.Namespace,
                    config: configparser.ConfigParser):
     args = {'répertoire': config['ssh']['répertoire'],
-            'table': config['sql']['table'],
+            'table': config['mysql']['table'],
             'temps': arguments.h,
             'desc': arguments.description,
             'atelier': int(arguments.atelier),
-            'requête': config['sql']['ajout']}
-    return format(modèle.read(), **args).split('\n')
+            'requête': config['mysql']['ajout']}
+    return modèle.read().format(**args).split('\n')
 
 def main():
     arguments = définir_arguments()
@@ -50,7 +51,7 @@ def main():
     with client.invoke_shell() as canal:
         print(heures.attendre(canal), end='')
         for instruction in instructions:
-            print(heures.exécuter(instruction, canal, saut_de_ligne_inclus=True), end='')
+            print(heures.exécuter(instruction, canal, saut_de_ligne_inclus=False), end='')
     
     client.close()
 
