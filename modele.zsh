@@ -3,6 +3,7 @@ export table={table}
 export temps={temps}
 export desc={desc}
 export atelier={atelier}
-mysql < envsubst < {requête} > mysql.out
-cat mysql.out
+envsubst < {requête} > script.sql
+mysql < script.sql > script.out
+cat script.out
 exit
