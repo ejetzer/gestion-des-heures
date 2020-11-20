@@ -1,3 +1,4 @@
 .htaccess
 .ipynb_*/*
 *.out
+*.config
