@@ -15,8 +15,9 @@ def extraire_config(fichier: str = 'paramiko.config'):
         serveur = ''
         for ligne in doc:
             ligne = ligne.strip()
-            attribut, valeur = [s.strip() for s in ligne.split('=')]
-            config[attribut] = valeur
+            if '=' in ligne:
+                attribut, valeur = [s.strip() for s in ligne.split('=')]
+                config[attribut] = valeur
     
     return config
 

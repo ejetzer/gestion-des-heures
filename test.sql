@@ -1,3 +1,4 @@
 use bd;
 select version(), now(), user();
-select * from Test;
+insert into `Test` (`Temps`, `Description`, `Atelier`) values (1, 'Test', 0);
+select * from `Test`;
