@@ -4,22 +4,7 @@
 import paramiko
 import databases
 import time
-
-def extraire_config(fichier: str = 'paramiko.config'):
-    # === paramiko.config ===
-    # [ssh]
-    #     serveur = ...
-    config = {}
-    
-    with open(fichier) as doc:
-        serveur = ''
-        for ligne in doc:
-            ligne = ligne.strip()
-            if '=' in ligne:
-                attribut, valeur = [s.strip() for s in ligne.split('=')]
-                config[attribut] = valeur
-    
-    return config
+import configparser
 
 def attendre(canal: paramiko.channel.Channel, attente: float = 1):
     while not canal.recv_ready():
@@ -43,10 +28,11 @@ def exécuter(commande: str,
     return attendre(canal, attente)
 
 def main():
-    config = extraire_config()
+    config = configparser.ConfigParser()
+    config.read('heures.config')
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.connect(config['serveur'])
+    client.connect(config['ssh']['serveur'])
     
     with client.invoke_shell() as canal,\
          open('programme_paramiko.zsh') as instructions:
