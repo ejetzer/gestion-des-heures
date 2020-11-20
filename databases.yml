@@ -1,0 +1,36 @@
+name: databases
+channels:
+  - defaults
+dependencies:
+  - bcrypt=3.2.0=py38haf1e3a3_0
+  - ca-certificates=2020.10.14=0
+  - certifi=2020.6.20=pyhd3eb1b0_3
+  - cffi=1.14.3=py38h2125817_2
+  - cryptography=3.2.1=py38hbcfaee0_1
+  - cyrus-sasl=2.1.27=h0a44026_7
+  - krb5=1.18.2=h75d18d8_0
+  - libcxx=10.0.0=1
+  - libdb=6.1.26=h0a44026_0
+  - libedit=3.1.20191231=h1de35cc_1
+  - libffi=3.3=hb1e8313_2
+  - libsodium=1.0.18=h1de35cc_0
+  - mysql=5.7.24=h56848d4_0
+  - ncurses=6.2=h0a44026_1
+  - openssl=1.1.1h=haf1e3a3_0
+  - paramiko=2.7.2=py_0
+  - pip=20.2.4=py38hecd8cb5_0
+  - pycparser=2.20=py_2
+  - pynacl=1.4.0=py38haf1e3a3_1
+  - python=3.8.5=h26836e1_1
+  - readline=8.0=h1de35cc_0
+  - setuptools=50.3.1=py38hecd8cb5_1
+  - six=1.15.0=py38hecd8cb5_0
+  - sqlite=3.33.0=hffcf06c_0
+  - tk=8.6.10=hb0a8c7a_0
+  - wheel=0.35.1=pyhd3eb1b0_0
+  - xz=5.2.5=h1de35cc_0
+  - zlib=1.2.11=h1de35cc_3
+  - pip:
+    - databases==0.4.1
+    - sqlalchemy==1.3.20
+prefix: /Users/ejetzer/opt/anaconda3/envs/databases
