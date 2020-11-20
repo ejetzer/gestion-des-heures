@@ -3,4 +3,4 @@
 *.out
 *.config
 __pycache__/*
-
+script.sql
