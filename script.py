@@ -30,7 +30,7 @@ def adapter_modèle(modèle: str,
                    config: configparser.ConfigParser):
     args = {'répertoire': config['ssh']['répertoire'],
             'table': config['mysql']['table'],
-            'temps': arguments.h,
+            'temps': arguments.h[0],
             'desc': arguments.description,
             'atelier': int(arguments.atelier),
             'requête': config['mysql']['ajout']}
