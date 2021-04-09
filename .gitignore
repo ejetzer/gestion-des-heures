@@ -4,3 +4,6 @@
 *.config
 __pycache__/*
 script.sql
+*.icloud
+.DS_Store
+
