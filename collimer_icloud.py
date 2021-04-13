@@ -34,7 +34,12 @@ for chemin in fichiers_tâches_complétées:
         nouvelle_entrée['Date'] = étampe
 
         for ligne in f.readlines():
-            champ, valeur = ligne.strip().split(':', 1)
+            div = ligne.strip().split(':', 1)
+            if len(div) > 1:
+                champ, valeur = div
+            else:
+                champ, valeur = div.pop(), ''
+
             nouvelle_entrée[champ] = valeur.strip(' "')
 
     entrées.append(nouvelle_entrée)
@@ -42,6 +47,7 @@ for chemin in fichiers_tâches_complétées:
 données = pd.DataFrame(entrées)
 moment = Dt.now()
 données.to_excel(str(destination / f'résumé {moment:%Y-%m-%d %H_%M}.xlsx'))
+
 
 # Archiver les fichiers
 for f in itertools.chain(fichiers_textes, fichiers_photos):
