@@ -6,4 +6,4 @@ __pycache__/*
 script.sql
 *.icloud
 .DS_Store
-
+.spyproject/*

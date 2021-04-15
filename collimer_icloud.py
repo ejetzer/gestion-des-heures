@@ -48,6 +48,17 @@ données = pd.DataFrame(entrées)
 moment = Dt.now()
 données.to_excel(str(destination / f'résumé {moment:%Y-%m-%d %H_%M}.xlsx'))
 
+données['Catégorie'] = None
+données['Précision si pour département'] = None
+données['Facturé'] = None
+données.loc[:, ['Payeur',
+                'Date',
+                'Description des travaux effectués',
+                'Catégorie',
+                'Demandeur',
+                'Nbr d\'heures', ]]\
+    .to_excel(str(destination / f'prêt {moment:%Y-%m-%d %H_%M}.xlsx'))
+
 
 # Archiver les fichiers
 for f in itertools.chain(fichiers_textes, fichiers_photos):
