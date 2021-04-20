@@ -9,8 +9,6 @@ Created on Wed Mar  3 10:28:33 2021
 import pandas as pd
 from pathlib import Path
 from datetime import datetime as Dt
-import shutil
-#import itertools
 
 
 racine = Path.home() / 'Library' / 'Mobile Documents' / \
@@ -36,8 +34,3 @@ atelier['Nbr d\'heures '] = atelier['Nbr d\'heures '].fillna(minutes)\
 with pd.ExcelWriter(activités / f'atelier {moment:%Y-%m-%d %H_%M}.xlsx') as excel:
     for groupe, heures in atelier.groupby('Payeur'):
         heures.to_excel(excel, sheet_name=groupe)
-
-# Archiver les fichiers
-for f in activités.glob(fichier):
-    print(f'Déplacer {f} vers {archive}...')
-    shutil.move(f, archive)

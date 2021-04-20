@@ -7,3 +7,6 @@ script.sql
 *.icloud
 .DS_Store
 .spyproject/*
+.spyproject
+__pycache__
+

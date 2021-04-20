@@ -9,8 +9,6 @@ Created on Fri Apr  9 08:00:29 2021
 import pandas as pd
 from pathlib import Path
 from datetime import datetime as Dt
-import shutil
-import itertools
 
 racine = Path.home() / 'Library' / 'Mobile Documents' / \
     'iCloud~is~workflow~my~workflows' / 'Documents'
@@ -42,25 +40,38 @@ for chemin in fichiers_tâches_complétées:
 
             nouvelle_entrée[champ] = valeur.strip(' "')
 
+            if champ == 'Atelier':
+                nouvelle_entrée[champ] = bool(int(nouvelle_entrée[champ]))
+            elif any(x in champ for x in ('heures', 'min')):
+                nouvelle_entrée[champ] = float(
+                    nouvelle_entrée[champ].replace(',', '.'))
+
     entrées.append(nouvelle_entrée)
 
 données = pd.DataFrame(entrées)
+
+données['Catégorie'] = ''
+
+if 'Précisions si pour département' not in données.columns:
+    données['Précision si pour département'] = ''
+
+données['Facturé'] = False
+
+if "Nbr d'heures " in données.columns:
+    if "Nbr d'heures" not in données.columns:
+        données["Nbr d'heures"] = données["Nbr d'heures "]
+    else:
+        données["Nbr d'heures"].fillna(données["Nbr d'heures "])
+
 moment = Dt.now()
 données.to_excel(str(destination / f'résumé {moment:%Y-%m-%d %H_%M}.xlsx'))
 
-données['Catégorie'] = None
-données['Précision si pour département'] = None
-données['Facturé'] = None
 données.loc[:, ['Payeur',
                 'Date',
                 'Description des travaux effectués',
                 'Catégorie',
                 'Demandeur',
-                'Nbr d\'heures', ]]\
+                "Nbr d'heures",
+                'Précision si pour département',
+                'Facturé']]\
     .to_excel(str(destination / f'prêt {moment:%Y-%m-%d %H_%M}.xlsx'))
-
-
-# Archiver les fichiers
-for f in itertools.chain(fichiers_textes, fichiers_photos):
-    print(f'Déplacer {f} vers {archive}...')
-    shutil.move(f, archive)
