@@ -24,18 +24,36 @@ df = pd.concat([pd.read_excel(f, 0) for f in activités.glob(fichier)],
     .iloc[:, 1:]
 
 
-def regroupements(x):
+def semaines_et_groupes(x):
     return df.loc[x, 'Date'].week, df.loc[x, 'Payeur']
 
 
-résumé = df.loc[:, ['Payeur', 'Date', "Nbr d'heures"]
-                ].groupby(regroupements).sum()
-résumé.index = pd.MultiIndex.from_tuples(résumé.index,
-                                         names=['Semaine', 'Payeur'])
-sommes_hebdomadaires = résumé.groupby('Semaine').sum()
+proportions = df.loc[:, ['Payeur', 'Date', "Nbr d'heures"]
+                     ].groupby(semaines_et_groupes).sum()
+proportions.index = pd.MultiIndex.from_tuples(proportions.index,
+                                              names=['Semaine', 'Payeur'])
+sommes_hebdomadaires = proportions.groupby('Semaine').sum()
 
 for semaine in sommes_hebdomadaires.index:
-    résumé.loc[semaine, 'Proportions'] = résumé["Nbr d'heures"] / \
+    proportions.loc[semaine, 'Proportions'] = proportions["Nbr d'heures"] / \
         sommes_hebdomadaires.loc[semaine, "Nbr d'heures"]
 
-résumé.to_excel(str(activités / f'stats {moment:%Y-%m-%d %H_%M}.xlsx'))
+
+def dates(x):
+    return df.loc[x, 'Date'].date()
+
+
+présences = df.loc[:, ['Date', "Nbr d'heures"]].groupby(dates).sum()
+présences['Différences'] = présences["Nbr d'heures"] - 7
+
+présences['+'] = 0
+présences['-'] = 0
+
+présences.loc[présences.Différences > 0,
+              '+'] = présences.loc[présences.Différences > 0, 'Différences']
+présences.loc[présences.Différences < 0,
+              '-'] = présences.loc[présences.Différences < 0, 'Différences']
+
+with pd.ExcelWriter(str(activités / f'stats {moment:%Y-%m-%d %H_%M}.xlsx')) as excel:
+    proportions.to_excel(excel, sheet_name='Proportions')
+    présences.to_excel(excel, sheet_name='Présences')
