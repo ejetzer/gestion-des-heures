@@ -35,7 +35,7 @@ def màj_temps_technicien(nouvelles_données: pd.DataFrame,
     cahier = xl.load_workbook(fichier)
     feuille = cahier[nom_feuille]
     colonnes = [col.value for col in feuille[noms_de_colonnes][0]]
-    valeurs = {c: [] for c in colonnes}
+    valeurs: dict[str, list] = {c: [] for c in colonnes}
     for ligne in feuille.iter_rows(min_row=rangée_min, max_col=colonne_max):
         cellules = [cel.value for cel in ligne]
         if not any(cellules):
@@ -73,6 +73,8 @@ def màj_temps_atelier(temps_atelier: pd.DataFrame,
     tableaux = temps_atelier.groupby('Payeur')
 
     for payeur, heures in tableaux:
+        if not len(payeur):
+            payeur = 'Département'
         if payeur not in cahier.sheetnames:
             nouvelle_feuille = cahier.copy_worksheet(cahier['Modèle'])
             nouvelle_feuille.title = payeur
@@ -138,24 +140,26 @@ if __name__ == '__main__':
     boite_de_dépôt = nouveaux / 'Journal de bord/'
     archive = boite_de_dépôt / 'Heures comptées'
     fichiers_textes = list(boite_de_dépôt.glob('*.txt'))
-    fichiers_photos = list(boite_de_dépôt.glob('*.png'))
+    fichiers_photos = list(boite_de_dépôt.glob('*.png')) + \
+        list(boite_de_dépôt.glob('*.jpeg'))
     fichiers_tâches_complétées = [
         f for f in fichiers_textes if 'complétée' in str(f)]
 
     nouvelles_données = extraire(fichiers_tâches_complétées)
-    nouvelles_données = formater(nouvelles_données)
-    données_prêtes = màj_temps_technicien(nouvelles_données)
+    données_formatées = formater(nouvelles_données)
+    données_prêtes = màj_temps_technicien(données_formatées)
 
-    temps_atelier = heures_atelier(nouvelles_données)
+    temps_atelier = heures_atelier(données_formatées)
     données_atelier = màj_temps_atelier(temps_atelier)
 
-    proportions = répartition(nouvelles_données)
-    présences = compte_des_heures(nouvelles_données)
+    proportions = répartition(données_formatées)
+    présences = compte_des_heures(données_formatées)
     données_présences = màj_calendrier_temps(présences)
 
     moment = Dt.now()
     fichier = racine / f'màj {moment:%Y-%m-%d %H_%M}.xlsx'
     with pd.ExcelWriter(fichier) as excel:
+        données_formatées.to_excel(excel, sheet_name='Données')
         proportions.to_excel(excel, sheet_name='Proportions')
         présences.to_excel(excel, sheet_name='Présences')
 
