@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.9
 # -*- coding: utf-8 -*-
 """
 Created on Fri Apr  9 08:00:29 2021
@@ -11,9 +11,10 @@ from pathlib import Path
 from datetime import datetime as Dt
 import itertools
 import shutil
+from typing import Iterable, Union
 
 
-def extraire(tâches_complétées: iter) -> pd.DataFrame:
+def extraire(tâches_complétées: Iterable) -> pd.DataFrame:
     """
     Extrait les données de documents textes.
 
@@ -31,7 +32,7 @@ def extraire(tâches_complétées: iter) -> pd.DataFrame:
     entrées = []
 
     for chemin in tâches_complétées:
-        nouvelle_entrée = {}
+        nouvelle_entrée: dict[str, Union[Dt, str, bool, float]] = {}
 
         with chemin.open() as f:
             étampe = Dt.fromtimestamp(chemin.stat().st_birthtime)
@@ -47,10 +48,11 @@ def extraire(tâches_complétées: iter) -> pd.DataFrame:
                 nouvelle_entrée[champ] = valeur.strip(' "')
 
                 if champ == 'Atelier':
-                    nouvelle_entrée[champ] = bool(int(nouvelle_entrée[champ]))
+                    nouvelle_entrée[champ] =\
+                        bool(int(str(nouvelle_entrée[champ])))
                 elif any(x in champ for x in ('heures', 'min')):
                     nouvelle_entrée[champ] = float(
-                        nouvelle_entrée[champ].replace(',', '.'))
+                        str(nouvelle_entrée[champ]).replace(',', '.'))
 
         entrées.append(nouvelle_entrée)
 
@@ -79,13 +81,21 @@ def formater(données: pd.DataFrame) -> pd.DataFrame:
     if 'Précision si pour département' not in données.columns:
         données['Précision si pour département'] = ''
 
+    données['Taux facturé'] = None
     données['Facturé'] = False
+    données['Technicien'] = 'Jetzer, Émile'
+    données['Autres'] = ''
+
+    données.loc[:, 'Payeur'] = données['Payeur'].apply(
+        lambda x: ', '.join(x.strip().split(' ')[::-1]))
 
     if "Nbr d'heures " in données.columns:
         if "Nbr d'heures" not in données.columns:
             données["Nbr d'heures"] = données["Nbr d'heures "]
         else:
             données["Nbr d'heures"].fillna(données["Nbr d'heures "])
+
+    données['Date \n(AAAA-MM-DD)'] = données['Date']
 
     return données
 
@@ -102,7 +112,8 @@ def heures_atelier(données: pd.DataFrame) -> pd.DataFrame:
     Returns
     -------
     atelier : pd.DataFrame
-        Heures passées à l'atelier, dans le format demandé par Catherine Caffiaux.
+        Heures passées à l'atelier, dans le format demandé par
+        Catherine Caffiaux.
 
     """
     atelier = données.loc[données.Atelier.astype(bool),
@@ -133,8 +144,9 @@ def répartition(données: pd.DataFrame) -> pd.DataFrame:
 
     proportions = données.loc[:, ['Payeur', 'Date', "Nbr d'heures"]
                               ].groupby(semaines_et_groupes).sum()
-    proportions.index = pd.MultiIndex.from_tuples(proportions.index,
-                                                  names=['Semaine', 'Payeur'])
+    proportions.index =\
+        pd.MultiIndex.from_tuples(proportions.index,
+                                  names=['Semaine', 'Payeur'])
     sommes_hebdomadaires = proportions.groupby('Semaine').sum()
 
     for semaine in sommes_hebdomadaires.index:
@@ -147,7 +159,8 @@ def répartition(données: pd.DataFrame) -> pd.DataFrame:
 
 def compte_des_heures(données: pd.DataFrame) -> pd.DataFrame:
     """
-    Donne le compte d'heures à chaque jour de travail, comparé à une journée standard.
+    Donne le compte d'heures à chaque jour de travail, comparé à une
+    journée standard.
 
     Parameters
     ----------
@@ -169,12 +182,10 @@ def compte_des_heures(données: pd.DataFrame) -> pd.DataFrame:
     présences['+'] = 0
     présences['-'] = 0
 
-    présences.loc[présences.Différences > 0,
-                  '+'] = présences.loc[présences.Différences > 0,
-                                       'Différences']
-    présences.loc[présences.Différences < 0,
-                  '-'] = présences.loc[présences.Différences < 0,
-                                       'Différences']
+    présences.loc[présences.Différences > 0, '+'] =\
+        présences.loc[présences.Différences > 0, 'Différences']
+    présences.loc[présences.Différences < 0, '-'] =\
+        présences.loc[présences.Différences < 0, 'Différences']
 
     return présences
 
@@ -208,14 +219,16 @@ if __name__ == '__main__':
     fichier = destination / f'màj {moment:%Y-%m-%d %H_%M}.xlsx'
     with pd.ExcelWriter(fichier) as excel:
         données.to_excel(excel, sheet_name='Résumé')
-        données.loc[:, ['Payeur',
-                        'Date',
+        données.loc[:, ['Technicien',
+                        'Payeur',
+                        'Date \n(AAAA-MM-DD)',
                         'Description des travaux effectués',
-                        'Catégorie',
                         'Demandeur',
                         "Nbr d'heures",
                         'Précision si pour département',
-                        'Facturé']]\
+                        'Taux facturé',
+                        'Facturé',
+                        'Autres']]\
             .to_excel(excel, sheet_name='Prêt')
 
         for groupe, heures in atelier.groupby('Payeur'):

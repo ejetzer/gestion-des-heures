@@ -14,28 +14,29 @@ from pathlib import Path
 import pandas as pd
 import itertools
 from datetime import datetime as Dt
+from typing import Any, Iterator, Union
 
 from entrer_les_heures import extraire, formater, heures_atelier,\
     répartition, compte_des_heures, archiver
 
 
 racine = Path.home() / 'OneDrive - polymtl.ca' / 'Heures'
-CalendrierTemps = 'CalendrierTemps-2020-2021 Émile_Jetzer.xlsx'
-TempsTechnicien = 'TempsTechniciens - Émile.xlsx'
+CalendrierTemps = 'CalendrierTemps-2021-2022 Émile_Jetzer.xlsx'
+TempsTechnicien = 'Feuille de temps 2021-2022 Émile.xlsx'
 TempsAtelier = 'TempsAtelier - Émile.xlsx'
 
 
 def màj_temps_technicien(nouvelles_données: pd.DataFrame,
                          fichier: Path = racine / TempsTechnicien,
-                         nom_feuille: str = 'Heures'):
-    noms_de_colonnes = 'A5:H5'
-    rangée_min = 6
-    colonne_max = 8
+                         nom_feuille: str = 'feuille de temps'):
+    noms_de_colonnes = 'A1:J1'
+    rangée_min = 2
+    colonne_max = 10
 
     cahier = xl.load_workbook(fichier)
     feuille = cahier[nom_feuille]
     colonnes = [col.value for col in feuille[noms_de_colonnes][0]]
-    valeurs: dict[str, list] = {c: [] for c in colonnes}
+    valeurs: dict[str, list[Any]] = {c: [] for c in colonnes}
     for ligne in feuille.iter_rows(min_row=rangée_min, max_col=colonne_max):
         cellules = [cel.value for cel in ligne]
         if not any(cellules):
@@ -45,14 +46,16 @@ def màj_temps_technicien(nouvelles_données: pd.DataFrame,
     tableau = pd.DataFrame(valeurs)
 
     temps_technicien = nouvelles_données\
-        .loc[:, ['Payeur',
+        .loc[:, ['Technicien',
+                 'Payeur',
                  'Date',
                  'Description des travaux effectués',
-                 'Catégorie',
                  'Demandeur',
                  "Nbr d'heures",
                  'Précision si pour département',
-                 'Facturé']]
+                 'Taux facturé',
+                 'Facturé',
+                 'Autres']]
 
     tableau = tableau.append(temps_technicien)
 
@@ -101,9 +104,11 @@ def màj_temps_atelier(temps_atelier: pd.DataFrame,
                 except StopIteration:
                     break
 
-        # Vérifier si la feuille est pleine, auquel cas il en faut une nouvelle.
-        # On ne devrait pas avoir besoin de faire ça plus qu'une fois (par mois).
-        heures_restantes = [h for h in heures]
+        # Vérifier si la feuille est pleine, auquel cas il en faut une
+        # nouvelle. On ne devrait pas avoir besoin de faire ça plus qu'une
+        # fois (par mois).
+        heures_restantes: Union[Iterator[Any], list[Any]] =\
+            [h for h in heures]
         if heures_restantes:
             nouvelle_feuille = cahier.copy_worksheet(cahier['Modèle'])
             nouvelle_feuille.title = f'{payeur} 2'
