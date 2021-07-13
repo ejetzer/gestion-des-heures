@@ -93,7 +93,16 @@ def formater(données: pd.DataFrame) -> pd.DataFrame:
         if "Nbr d'heures" not in données.columns:
             données["Nbr d'heures"] = données["Nbr d'heures "]
         else:
-            données["Nbr d'heures"].fillna(données["Nbr d'heures "])
+            données["Nbr d'heures"] = données["Nbr d'heures"]\
+                .fillna(données["Nbr d'heures "])
+
+    données["Nbr total d'heures"] = données["Nbr d'heures"]
+    données["Nbr d'heures \npassées dans l'atelier"] = 0
+    données.loc[
+        données.Atelier,
+        "Nbr d'heures \npassées dans l'atelier"] = données.loc[
+            données.Atelier,
+            "Nbr total d'heures"]
 
     données['Date \n(AAAA-MM-DD)'] = données['Date']
 
@@ -210,7 +219,7 @@ if __name__ == '__main__':
 
     données = extraire(fichiers_tâches_complétées)
     données = formater(données)
-    atelier = heures_atelier(données)
+    #atelier = heures_atelier(données)
     proportions = répartition(données)
     présences = compte_des_heures(données)
 
@@ -221,18 +230,19 @@ if __name__ == '__main__':
         données.to_excel(excel, sheet_name='Résumé')
         données.loc[:, ['Technicien',
                         'Payeur',
-                        'Date \n(AAAA-MM-DD)',
+                        'Date',
                         'Description des travaux effectués',
                         'Demandeur',
-                        "Nbr d'heures",
+                        "Nbr total d'heures",
+                        "Nbr d'heures \npassées dans l'atelier",
                         'Précision si pour département',
                         'Taux facturé',
                         'Facturé',
                         'Autres']]\
             .to_excel(excel, sheet_name='Prêt')
 
-        for groupe, heures in atelier.groupby('Payeur'):
-            heures.to_excel(excel, sheet_name=f'Atelier {groupe}')
+#        for groupe, heures in atelier.groupby('Payeur'):
+#            heures.to_excel(excel, sheet_name=f'Atelier {groupe}')
 
         proportions.to_excel(excel, sheet_name='Proportions')
         présences.to_excel(excel, sheet_name='Présences')

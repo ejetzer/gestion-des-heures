@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+"""modifier_excel.py - Mettre à jour les feuilles de temps directement.
+
 Created on Sun Apr 25 09:03:13 2021
 
 @author: emilejetzer
@@ -16,14 +17,14 @@ import itertools
 from datetime import datetime as Dt
 from typing import Any, Iterator, Union
 
-from entrer_les_heures import extraire, formater, heures_atelier,\
+from entrer_les_heures import extraire, formater,\
     répartition, compte_des_heures, archiver
 
 
-racine = Path.home() / 'OneDrive - polymtl.ca' / 'Heures'
+racine = Path.home() / 'Documents' / 'Polytechnique' / 'Heures'
 CalendrierTemps = 'CalendrierTemps-2021-2022 Émile_Jetzer.xlsx'
 TempsTechnicien = 'Feuille de temps 2021-2022 Émile.xlsx'
-TempsAtelier = 'TempsAtelier - Émile.xlsx'
+# TempsAtelier = 'TempsAtelier - Émile.xlsx'
 
 
 def màj_temps_technicien(nouvelles_données: pd.DataFrame,
@@ -51,7 +52,8 @@ def màj_temps_technicien(nouvelles_données: pd.DataFrame,
                  'Date',
                  'Description des travaux effectués',
                  'Demandeur',
-                 "Nbr d'heures",
+                 "Nbr total d'heures",
+                 "Nbr d'heures \npassées dans l'atelier",
                  'Précision si pour département',
                  'Taux facturé',
                  'Facturé',
@@ -70,68 +72,68 @@ def màj_temps_technicien(nouvelles_données: pd.DataFrame,
     return tableau
 
 
-def màj_temps_atelier(temps_atelier: pd.DataFrame,
-                      fichier: Path = racine / TempsAtelier):
-    cahier = xl.load_workbook(fichier)
-    tableaux = temps_atelier.groupby('Payeur')
+# def màj_temps_atelier(temps_atelier: pd.DataFrame,
+#                       fichier: Path = racine / TempsAtelier):
+#     cahier = xl.load_workbook(fichier)
+#     tableaux = temps_atelier.groupby('Payeur')
 
-    for payeur, heures in tableaux:
-        if not len(payeur):
-            payeur = 'Département'
-        if payeur not in cahier.sheetnames:
-            nouvelle_feuille = cahier.copy_worksheet(cahier['Modèle'])
-            nouvelle_feuille.title = payeur
+#     for payeur, heures in tableaux:
+#         if not len(payeur):
+#             payeur = 'Département'
+#         if payeur not in cahier.sheetnames:
+#             nouvelle_feuille = cahier.copy_worksheet(cahier['Modèle'])
+#             nouvelle_feuille.title = payeur
 
-        heures = dataframe_to_rows(
-            heures.loc[:, ['Date',
-                           'Description des travaux effectués',
-                           "Nbr d'heures"]],
-            index=False,
-            header=False)
-        feuille = cahier[payeur]
-        for date, desc, nbr in itertools.chain(
-                feuille.iter_rows(min_row=19,
-                                  max_row=32,
-                                  min_col=1,
-                                  max_col=3),
-                feuille.iter_rows(min_row=19,
-                                  max_row=32,
-                                  min_col=4,
-                                  max_col=6)):
-            if not date.value:
-                try:
-                    date.value, desc.value, nbr.value = next(heures)
-                except StopIteration:
-                    break
+#         heures = dataframe_to_rows(
+#             heures.loc[:, ['Date',
+#                            'Description des travaux effectués',
+#                            "Nbr d'heures"]],
+#             index=False,
+#             header=False)
+#         feuille = cahier[payeur]
+#         for date, desc, nbr in itertools.chain(
+#                 feuille.iter_rows(min_row=19,
+#                                   max_row=32,
+#                                   min_col=1,
+#                                   max_col=3),
+#                 feuille.iter_rows(min_row=19,
+#                                   max_row=32,
+#                                   min_col=4,
+#                                   max_col=6)):
+#             if not date.value:
+#                 try:
+#                     date.value, desc.value, nbr.value = next(heures)
+#                 except StopIteration:
+#                     break
 
-        # Vérifier si la feuille est pleine, auquel cas il en faut une
-        # nouvelle. On ne devrait pas avoir besoin de faire ça plus qu'une
-        # fois (par mois).
-        heures_restantes: Union[Iterator[Any], list[Any]] =\
-            [h for h in heures]
-        if heures_restantes:
-            nouvelle_feuille = cahier.copy_worksheet(cahier['Modèle'])
-            nouvelle_feuille.title = f'{payeur} 2'
+#         # Vérifier si la feuille est pleine, auquel cas il en faut une
+#         # nouvelle. On ne devrait pas avoir besoin de faire ça plus qu'une
+#         # fois (par mois).
+#         heures_restantes: Union[Iterator[Any], list[Any]] =\
+#             [h for h in heures]
+#         if heures_restantes:
+#             nouvelle_feuille = cahier.copy_worksheet(cahier['Modèle'])
+#             nouvelle_feuille.title = f'{payeur} 2'
 
-            heures_restantes = iter(heures_restantes)
-            for date, desc, nbr in itertools.chain(
-                    nouvelle_feuille.iter_rows(min_row=19,
-                                               max_row=32,
-                                               min_col=1,
-                                               max_col=3),
-                    nouvelle_feuille.iter_rows(min_row=19,
-                                               max_row=32,
-                                               min_col=4,
-                                               max_col=6)):
+#             heures_restantes = iter(heures_restantes)
+#             for date, desc, nbr in itertools.chain(
+#                     nouvelle_feuille.iter_rows(min_row=19,
+#                                                max_row=32,
+#                                                min_col=1,
+#                                                max_col=3),
+#                     nouvelle_feuille.iter_rows(min_row=19,
+#                                                max_row=32,
+#                                                min_col=4,
+#                                                max_col=6)):
 
-                try:
-                    date.value, desc.value, nbr.value = next(heures_restantes)
-                except StopIteration:
-                    break
+#                 try:
+#                     date.value, desc.value, nbr.value = next(heures_restantes)
+#                 except StopIteration:
+#                     break
 
-    cahier.save(fichier)
+#     cahier.save(fichier)
 
-    return tableaux
+#     return tableaux
 
 
 def màj_calendrier_temps(présences: pd.DataFrame,
@@ -154,8 +156,8 @@ if __name__ == '__main__':
     données_formatées = formater(nouvelles_données)
     données_prêtes = màj_temps_technicien(données_formatées)
 
-    temps_atelier = heures_atelier(données_formatées)
-    données_atelier = màj_temps_atelier(temps_atelier)
+    # temps_atelier = heures_atelier(données_formatées)
+    # données_atelier = màj_temps_atelier(temps_atelier)
 
     proportions = répartition(données_formatées)
     présences = compte_des_heures(données_formatées)
