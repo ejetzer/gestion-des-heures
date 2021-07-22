@@ -202,7 +202,7 @@ def compte_des_heures(données: pd.DataFrame) -> pd.DataFrame:
 def archiver(*args, archive='.'):
     """Archive les fichiers."""
     for f in itertools.chain(*args):
-        shutil.move(f, archive)
+        shutil.move(str(f), str(archive))
 
 
 if __name__ == '__main__':
