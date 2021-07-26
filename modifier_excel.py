@@ -30,7 +30,7 @@ TempsTechnicien = 'Feuille de temps 2021-2022 Émile.xlsx'
 def màj_temps_technicien(nouvelles_données: pd.DataFrame,
                          fichier: Path = racine / TempsTechnicien,
                          nom_feuille: str = 'feuille de temps'):
-    noms_de_colonnes = 'A1:J1'
+    noms_de_colonnes = 'A1:K1'
     rangée_min = 2
     colonne_max = 10
 

@@ -1,0 +1,16 @@
+[Polytechnique]
+    Racine: ~/Documents/Polytechnique/Heures
+    Boîte de dépôt: ~/Library/Mobile Documents/iCloud~is~workflow~my~workflows/Documents/Journal de bord/
+    Archive: ~/Library/Mobile Documents/iCloud~is~workflow~my~workflows/Documents/Journal de bord/Heures comptées
+    Destination: ~/Documents/Polytechnique/Heures
+    Colonnes: ['Technicien', 'Payeur', 'Date', 'Description des travaux effectués', 'Demandeur', 'Heures', 'Atelier', 'Précision si pour département', 'Taux facturé', 'Facturé', 'Autres']
+    Technicien: Jetzer, Émile
+    Taux facturé:
+    Facturé: False
+    Autres:
+    CalendrierTemps: CalendrierTemps-2021-2022 Émile_Jetzer.xlsx
+    TempsTechnicien: Feuille de temps 2021-2022 Émile.xlsx
+    Feuille: feuille de temps
+    Colonnes Excel: A1:K1
+    Première rangée: 2
+    Dernière colonne: 10
