@@ -18,9 +18,10 @@ import itertools
 import shutil
 
 fonctions_importation = {'Atelier': lambda x: bool(int(str(x))),
-                         "Nbr d'heures": lambda x: float(str(x.replace(',', '.'))),
+                         'Heures': lambda x: float(str(x.replace(',', '.'))),
                          'Payeur': lambda x: ', '.join(x.strip().split(' ')[::-1]),
-                         'Description des travaux effectués': lambda x: x.strip('"')}
+                         'Description des travaux effectués': lambda x: x.strip('"'),
+                         'Date': lambda x: datetime.datetime.fromisoformat(x).date()}
 
 def extraire(fichiers, **défaut):
     entrées = []
@@ -128,8 +129,7 @@ def main():
     fichiers_textes = list(boite_de_dépôt.glob('*.txt'))
     fichiers_photos = list(boite_de_dépôt.glob('*.png')) + \
         list(boite_de_dépôt.glob('*.jpeg'))
-    fichiers_tâches_complétées = [
-        f for f in fichiers_textes if 'complétée' in str(f)]
+    fichiers_tâches_complétées = [f for f in fichiers_textes if 'complétée' in f.stem]
 
     données = extraire(fichiers_tâches_complétées, **config_poly)
 
