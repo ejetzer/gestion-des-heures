@@ -17,6 +17,8 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import itertools
 import shutil
 
+import apple_calendar_integration # https://pypi.org/project/apple-calendar-integration/
+
 fonctions_importation = {'Atelier': lambda x: bool(int(str(x))),
                          'Heures': lambda x: float(str(x.replace(',', '.'))),
                          'Payeur': lambda x: ', '.join(x.strip().split(' ')[::-1]),

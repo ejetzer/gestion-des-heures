@@ -1,0 +1,5 @@
+pandas==0.25.1
+apple_calendar_integration==0.0.1
+openpyxl==3.0.0
+databases==0.4.3
+paramiko==2.7.2
