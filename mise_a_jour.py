@@ -131,7 +131,7 @@ def main():
     fichiers_textes = list(boite_de_dépôt.glob('*.txt'))
     fichiers_photos = list(boite_de_dépôt.glob('*.png')) + \
         list(boite_de_dépôt.glob('*.jpeg'))
-    fichiers_tâches_complétées = [f for f in fichiers_textes if 'complétée' in f.stem]
+    fichiers_tâches_complétées = [f for f in fichiers_textes if 'compl' in f.stem]
 
     données = extraire(fichiers_tâches_complétées, **config_poly)
 
