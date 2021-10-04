@@ -3,6 +3,7 @@
     Boîte de dépôt: ~/Library/Mobile Documents/iCloud~is~workflow~my~workflows/Documents/Journal de bord/
     Archive: ~/Library/Mobile Documents/iCloud~is~workflow~my~workflows/Documents/Journal de bord/Heures comptées
     Destination: ~/Documents/Polytechnique/Heures
+    Réseau: /Volumes/GeniePhysique/Techniciens/Emile_Jetzer/Heures
     Colonnes: ['Technicien', 'Payeur', 'Date', 'Description des travaux effectués', 'Demandeur', 'Heures', 'Atelier', 'Précision si pour département', 'Taux facturé', 'Facturé', 'Autres']
     Technicien: Jetzer, Émile
     Taux facturé:

@@ -13,13 +13,20 @@ import pathlib
 import os.path
 
 import mise_a_jour
-
+from git import Repository
 
 class Formulaire(tkinter.Frame):
 
     def __init__(self, configuration, *args, **kargs):
         super().__init__(*args, **kargs)
         self.charger_configuration(configuration)
+        
+        self.répertoire_local = Repository(pathlib.Path(self.config['Polytechnique']['Destination']).expanduser())
+        self.répertoire_local.pull()
+        
+        self.répertoire_distant = Repository(pathlib.Path(self.config['Polytechnique']['Réseau']).expanduser())
+        self.répertoire_distant.pull()
+        
         self.créer_champs()
 
     def créer_champs(self):
@@ -59,10 +66,17 @@ class Formulaire(tkinter.Frame):
         self.bouton_soumettre.grid(row=i+1, column=1, sticky='EW')
 
         def màj():
-            mise_a_jour.main()
+            self.bouton_maj.configure(fg='red', text='Mise à jour en cours...')
+            mise_a_jour.main(self.config)
+            self.répertoire_local.commit('Màj automatique', '-a')
+            self.répertoire_distant.pull()
+            self.bouton_maj.configure(fg='green', text='Mettre à jour')
 
         self.bouton_maj = tkinter.Button(text='Mettre à jour', command=màj)
         self.bouton_maj.grid(row=i+2, column=0, columnspan=2, sticky='EW')
+        self.bouton_maj.configure(fg='green')
+        
+        self.after(1000* 60 * 60 * 8, màj)
 
 
     def ajouter_entrée(self, **kargs):
@@ -77,6 +91,14 @@ class Formulaire(tkinter.Frame):
         self.config = configparser.ConfigParser()
         self.config.optionxform = str
         self.config.read(fichier)
+    
+    def destroy(self):
+        self.bouton_maj.configure(fg='red')
+        mise_a_jour.main(self.config)
+        self.répertoire_local.commit('Màj automatique', '-a')
+        self.répertoire_distant.pull()
+        self.répertoire_local.pull()
+        super().destroy()
 
 
 if __name__ == '__main__':

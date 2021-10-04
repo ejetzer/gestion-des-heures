@@ -112,10 +112,7 @@ def archiver(*args, archive='.'):
         shutil.move(str(f), str(archive))
 
 
-def main():
-    config = configparser.ConfigParser()
-    config.optionxform = str
-    config.read('Configuration.txt')
+def main(config):
     config_poly = config['Polytechnique']
     racine = pathlib.Path(os.path.expanduser(config_poly['Racine']))
     boite_de_dépôt = pathlib.Path(os.path.expanduser(config_poly['Boîte de dépôt']))
@@ -152,4 +149,7 @@ def main():
         archiver(fichiers_photos, fichiers_textes, archive=archive)
 
 if __name__ == '__main__':
-    main()
+    config = configparser.ConfigParser()
+    config.optionxform = str
+    config.read('Configuration.txt')
+    main(config)
