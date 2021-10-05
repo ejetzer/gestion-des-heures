@@ -49,16 +49,16 @@ class FeuilleDeTemps:
         self.données = None
 
     @property
-    def fichiers_texte(self) -> iter[Path]:
+    def fichiers_texte(self) -> iter:
         yield from self.boite_de_dépôt.glob('*.txt')
 
     @property
-    def fichiers_photo(self) -> iter[Path]:
+    def fichiers_photo(self) -> iter:
         yield from self.boite_de_dépôt.glob('*.png')
         yield from boite_de_dépôt.glob('*.jpeg')
 
     @property
-    def fichiers_des_tâches_complétées(self) -> iter[Path]:
+    def fichiers_des_tâches_complétées(self) -> iter:
         yield from (f for f in fichiers_textes if 'compl' in f.stem)
 
     def extraire(self, fichiers: list[Path] = None, **défaut) -> DataFrame:
@@ -201,7 +201,7 @@ class FeuilleDeTemps:
         # Comme des fichiers ics pour le calendrier
         for item in données.iterrows():
             titre = '✅ ' + item['Description des travaux effectués']
-            durée = datetime.timedelta(hours=item['Heures']
+            durée = datetime.timedelta(hours=item['Heures'])
             nouveau = self.calendrier.créer_événement(titre, moment, durée)
             fichier = destination / f'màj {moment:%Y-%m-%d %H_%M} {titre[2:]}.ics'
             with fichier.open('w') as f:
@@ -219,8 +219,6 @@ class FeuilleDeTemps:
 
     def __exit__(self):
         pass
-    for f in itertools.chain(*args):
-        shutil.move(str(f), str(archive))
 
 
 def main(config):
