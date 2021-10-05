@@ -8,16 +8,23 @@ Created on Mon Jul 26 10:29:13 2021
 
 import configparser
 import pathlib
-import os.path
 import datetime
 import re
-import pandas
-import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
 import itertools
 import shutil
 
-import apple_calendar_integration # https://pypi.org/project/apple-calendar-integration/
+import os.path
+
+from pathlib import Path
+
+import pandas
+import openpyxl
+
+from openpyxl.utils.dataframe import dataframe_to_rows
+from pandas import DataFrame
+
+from calendrier import Calendrier
+
 
 fonctions_importation = {'Atelier': lambda x: bool(int('0' + str(x).strip())),
                          'Heures': lambda x: float(str(x.replace(',', '.'))),
@@ -25,128 +32,211 @@ fonctions_importation = {'Atelier': lambda x: bool(int('0' + str(x).strip())),
                          'Description des travaux effectués': lambda x: x.strip('"'),
                          'Date': lambda x: datetime.datetime.fromisoformat(x).date()}
 
-def extraire(fichiers, **défaut):
-    entrées = []
+class FeuilleDeTemps:
 
-    for chemin in fichiers:
-        nouvelle_entrée = {c: défaut.get(c, None) for c in eval(défaut['Colonnes'])}
-        nouvelle_entrée['Date'] = datetime.datetime.fromtimestamp(chemin.stat().st_birthtime).date()
+    def __init__(self, calendrier: Calendrier, **config):
+        self.config: dict[str, str] = config
+        self.destination: Path = Path(self.config['Destination']).expanduser()
+        self.fichier_temps: Path = self.destination / \
+            self.config['TempsTechnicien']
+        self.archive: Path = Path(self.config['Archive']).expanduser()
+        self.nom_feuille: str = self.config['Feuille']
+        self.colonnes_excel: str = self.config['Colonnes Excel']
+        self.rangée_min: int = int(self.config['Première rangée'])
+        self.colonne_max: int = int(self.config['Dernière colonne'])
 
-        with chemin.open() as f:
-            for ligne in f.readlines():
-                expression = r'^\s*(.+?)\s*:\s*(.+?)\s*$'
-                match = re.match(expression, ligne)
-                champ, valeur = match.group(1, 2)
-                nouvelle_entrée[champ] = fonctions_importation.get(champ, lambda x: x.strip())(valeur)
+        self.calendrier = calendrier
+        self.données = None
 
-        entrées.append(nouvelle_entrée)
+    @property
+    def fichiers_texte(self) -> iter[Path]:
+        yield from self.boite_de_dépôt.glob('*.txt')
 
-    données = pandas.DataFrame(entrées)
+    @property
+    def fichiers_photo(self) -> iter[Path]:
+        yield from self.boite_de_dépôt.glob('*.png')
+        yield from boite_de_dépôt.glob('*.jpeg')
 
-    if entrées:
-        # données.loc[:, 'Heures'] = données.loc[:, "Nbr d'heures"]
-        données.loc[données.Atelier, 'Atelier'] = données.loc[données.Atelier, 'Heures']
-        données.loc[données.Atelier == False, 'Atelier'] = 0
-        données = données.loc[:, eval(défaut['Colonnes'])]
+    @property
+    def fichiers_des_tâches_complétées(self) -> iter[Path]:
+        yield from (f for f in fichiers_textes if 'compl' in f.stem)
 
-    return données
+    def extraire(self, fichiers: list[Path] = None, **défaut) -> DataFrame:
+        if fichiers is None:
+            fichiers = self.fichiers_des_tâches_complétées
+        if défaut is None or défaut == {}:
+            défaut = self.config
 
+        entrées = []
 
-def répartition(données):
-    def semaines_et_groupes(x):
-        return données.loc[x, 'Date'].isocalendar()[1], données.loc[x, 'Payeur']
+        for chemin in fichiers:
+            nouvelle_entrée = {c: défaut.get(c, None)
+                               for c in eval(défaut['Colonnes'])}
+            nouvelle_entrée['Date'] = datetime.datetime.fromtimestamp(
+                chemin.stat().st_birthtime).date()
 
-    proportions = données.loc[:, ['Payeur', 'Date', 'Heures']].groupby(semaines_et_groupes).sum()
-    proportions.index = pandas.MultiIndex.from_tuples(proportions.index, names=['Semaine', 'Payeur'])
-    sommes_hebdomadaires = proportions.groupby('Semaine').sum()
+            with chemin.open() as f:
+                for ligne in f.readlines():
+                    expression = r'^\s*(.+?)\s*:\s*(.+?)\s*$'
+                    match = re.match(expression, ligne)
+                    champ, valeur = match.group(1, 2)
+                    nouvelle_entrée[champ] = fonctions_importation.get(
+                        champ, lambda x: x.strip())(valeur)
 
-    for semaine in sommes_hebdomadaires.index:
-        proportions.loc[semaine, 'Proportions'] = proportions['Heures'] / sommes_hebdomadaires.loc[semaine, 'Heures']
+            entrées.append(nouvelle_entrée)
 
-    return proportions
+        données = pandas.DataFrame(entrées)
 
-def compte_des_heures(données):
-    def dates(x):
-        return données.loc[x, 'Date']
+        if entrées:
+            # données.loc[:, 'Heures'] = données.loc[:, "Nbr d'heures"]
+            données.loc[données.Atelier,
+                        'Atelier'] = données.loc[données.Atelier, 'Heures']
+            données.loc[données.Atelier == False, 'Atelier'] = 0
+            données = données.loc[:, eval(défaut['Colonnes'])]
 
-    présences = données.loc[:, ['Date', 'Heures']].groupby(dates).sum()
-    présences['Différences'] = présences['Heures'] - 7
+        self.données = données
+        return données
 
-    présences['+'] = 0
-    présences['-'] = 0
+    def répartition(self, données: DataFrame = None) -> DataFrame:
+        if données is None:
+            données = self.données
 
-    présences.loc[présences.Différences > 0, '+'] =\
-        présences.loc[présences.Différences > 0, 'Différences']
-    présences.loc[présences.Différences < 0, '-'] =\
-        présences.loc[présences.Différences < 0, 'Différences']
+        def semaines_et_groupes(x): return données.loc[x, 'Date'].isocalendar()[
+            1], données.loc[x, 'Payeur']
 
-    return présences
+        proportions = données.loc[:, ['Payeur', 'Date', 'Heures']].groupby(
+            semaines_et_groupes).sum()
+        proportions.index = pandas.MultiIndex.from_tuples(
+            proportions.index, names=['Semaine', 'Payeur'])
+        sommes_hebdomadaires = proportions.groupby('Semaine').sum()
 
+        for semaine in sommes_hebdomadaires.index:
+            proportions.loc[semaine, 'Proportions'] = proportions['Heures'] / \
+                sommes_hebdomadaires.loc[semaine, 'Heures']
 
-def màj(données, fichier, nom_feuille, colonnes_excel, rangée_min, colonne_max):
-    cahier = openpyxl.load_workbook(fichier)
-    feuille = cahier[nom_feuille]
+        return proportions
 
-    colonnes = [col.value for col in feuille[colonnes_excel][0]]
-    valeurs = {c: [] for c in colonnes}
-    for ligne in feuille.iter_rows(min_row=rangée_min, max_col=colonne_max, values_only=True):
-        ligne = ligne + tuple('' for i in range(11-len(ligne)))
-        for colonne, cellule in zip(colonnes, ligne):
-            valeurs[colonne].append(cellule)
+    def compte(self, données: DataFrame = None) -> DataFrame:
+        if données is None:
+            données = self.données
 
-    tableau = pandas.DataFrame(valeurs)
-    tableau = tableau.append(données)
-    tableau = tableau.sort_values('Date')
+        def dates(x): return données.loc[x, 'Date']
 
-    for i, ligne in enumerate(dataframe_to_rows(tableau, index=False, header=False)):
-        for col, cel in zip('ABCDEFGHIJK', ligne):
-            feuille[f'{col}{rangée_min+i}'] = cel
+        présences = données.loc[:, ['Date', 'Heures']].groupby(dates).sum()
+        présences['Différences'] = présences['Heures'] - 7
 
-    cahier.save(fichier)
+        présences['+'] = 0
+        présences['-'] = 0
 
-    return tableau
+        présences.loc[présences.Différences > 0, '+'] =\
+            présences.loc[présences.Différences > 0, 'Différences']
+        présences.loc[présences.Différences < 0, '-'] =\
+            présences.loc[présences.Différences < 0, 'Différences']
 
+        return présences
 
-def archiver(*args, archive='.'):
-    for f in itertools.chain(*args):
-        shutil.move(str(f), str(archive))
+    def màj(self,
+            données: DataFrame = None,
+            fichier_temps: Path = None,
+            nom_feuille: str = None,
+            colonnes_excel: str = None,
+            rangée_min: int = None,
+            colonne_max: int = None) -> DataFrame:
+        if données is None:
+            données = self.données
+        if fichier_temps is None:
+            fichier_temps = self.fichier_temps
+        if nom_feuille is None:
+            nom_feuille = self.nom_feuille
+        if colonnes_excel is None:
+            colonnes_excel = self.colonnes_excel
+        if rangée_min is None:
+            rangée_min = self.rangée_min
+        if colonne_max is None:
+            colonne_max = self.colonne_max
 
+        cahier = openpyxl.load_workbook(fichier)
+        feuille = cahier[nom_feuille]
 
-def main(config):
-    config_poly = config['Polytechnique']
-    racine = pathlib.Path(os.path.expanduser(config_poly['Racine']))
-    boite_de_dépôt = pathlib.Path(os.path.expanduser(config_poly['Boîte de dépôt']))
-    archive = pathlib.Path(os.path.expanduser(config_poly['Archive']))
-    destination = pathlib.Path(os.path.expanduser(config_poly['Destination']))
-    colonnes_finales = eval(config_poly['Colonnes'])
-    nom_feuille = config_poly['Feuille']
-    colonnes_excel = config_poly['Colonnes Excel']
-    rangée_min = config_poly.getint('Première rangée')
-    colonne_max = config_poly.getint('Dernière colonne')
-    fichier_temps = destination / config_poly['TempsTechnicien']
+        colonnes = [col.value for col in feuille[colonnes_excel][0]]
+        valeurs = {c: [] for c in colonnes}
+        for ligne in feuille.iter_rows(min_row=rangée_min, max_col=colonne_max, values_only=True):
+            ligne = ligne + tuple('' for i in range(11-len(ligne)))
+            for colonne, cellule in zip(colonnes, ligne):
+                valeurs[colonne].append(cellule)
 
-    fichiers_textes = list(boite_de_dépôt.glob('*.txt'))
-    fichiers_photos = list(boite_de_dépôt.glob('*.png')) + \
-        list(boite_de_dépôt.glob('*.jpeg'))
-    fichiers_tâches_complétées = [f for f in fichiers_textes if 'compl' in f.stem]
+        tableau = pandas.DataFrame(valeurs)
+        tableau = tableau.append(données)
+        tableau = tableau.sort_values('Date')
 
-    données = extraire(fichiers_tâches_complétées, **config_poly)
+        for i, ligne in enumerate(dataframe_to_rows(tableau, index=False, header=False)):
+            for col, cel in zip('ABCDEFGHIJK', ligne):
+                feuille[f'{col}{rangée_min+i}'] = cel
 
-    if not données.empty:
-        proportions = répartition(données)
-        présences = compte_des_heures(données)
+        cahier.save(fichier)
+
+        return tableau
+
+    def enregistrer(self, données: DataFrame = None, destination: Path = None):
+        if données is None:
+            données = self.données
+        if destination is None:
+            destination = self.destination
+
+        if données.empty:
+            raise ValueError('Aucune donnée à enregistrer.')
+
+        proportions = self.répartition(données)
+        présences = self.compte(données)
 
         moment = datetime.datetime.now()
 
+        # Dans un fichier Excel daté
         fichier = destination / f'màj {moment:%Y-%m-%d %H_%M}.xlsx'
         with pandas.ExcelWriter(fichier) as excel:
             données.to_excel(excel, sheet_name='Données')
             proportions.to_excel(excel, sheet_name='Proportions')
             présences.to_excel(excel, sheet_name='Présences')
 
-        màj(données, fichier_temps, nom_feuille, colonnes_excel, rangée_min, colonne_max)
+        # Comme des fichiers ics pour le calendrier
+        for item in données.iterrows():
+            titre = '✅ ' + item['Description des travaux effectués']
+            durée = datetime.timedelta(hours=item['Heures']
+            nouveau = self.calendrier.créer_événement(titre, moment, durée)
+            fichier = destination / f'màj {moment:%Y-%m-%d %H_%M} {titre[2:]}.ics'
+            with fichier.open('w') as f:
+                f.write(str(nouveau))
 
-        archiver(fichiers_photos, fichiers_textes, archive=archive)
+    def archiver(self, *args, archive: Path = None):
+        if archive is None:
+            archive = self.archive
+        for f in itertools.chain(*args):
+            shutil.move(str(f), str(archive))
+
+    def __enter__(self):
+        self.extraire()
+        return self
+
+    def __exit__(self):
+        pass
+    for f in itertools.chain(*args):
+        shutil.move(str(f), str(archive))
+
+
+def main(config):
+    cfg = configparser.ConfigParser()
+    cfg.read('Configuration.txt')
+    cal_cfg = cfg['Calendrier']
+
+    racine = Path(cal_cfg['ics']).expanduser()
+    calendrier = Calendrier(cal_cfg['compte'], cal_cfg['cal'], racine)
+
+    with FeuilleDeTemps(calendrier, **config['Polytechnique']) as feuille:
+        feuille.extraire()
+        feuille.enregistrer()
+        feuille.màj()
+        feuille.archiver()
+
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
