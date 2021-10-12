@@ -27,7 +27,7 @@ from calendrier import Calendrier
 
 
 fonctions_importation = {'Atelier': lambda x: bool(int('0' + str(x).strip())),
-                         'Heures': lambda x: float(str(x.replace(',', '.'))),
+                         'Heures': lambda x: float(str(x.replace(',', '.')) + '0'),
                          'Payeur': lambda x: ', '.join(x.strip().split(' ')[::-1]),
                          'Description des travaux effectués': lambda x: x.strip('"'),
                          'Date': lambda x: datetime.datetime.fromisoformat(x).date()}
@@ -44,22 +44,23 @@ class FeuilleDeTemps:
         self.colonnes_excel: str = self.config['Colonnes Excel']
         self.rangée_min: int = int(self.config['Première rangée'])
         self.colonne_max: int = int(self.config['Dernière colonne'])
+        self.boîte_de_dépôt: Path = Path(self.config['Boîte de dépôt']).expanduser()
 
         self.calendrier = calendrier
         self.données = None
 
     @property
     def fichiers_texte(self) -> iter:
-        yield from self.boite_de_dépôt.glob('*.txt')
+        yield from self.boîte_de_dépôt.glob('*.txt')
 
     @property
     def fichiers_photo(self) -> iter:
-        yield from self.boite_de_dépôt.glob('*.png')
-        yield from boite_de_dépôt.glob('*.jpeg')
+        yield from self.boîte_de_dépôt.glob('*.png')
+        yield from self.boîte_de_dépôt.glob('*.jpeg')
 
     @property
     def fichiers_des_tâches_complétées(self) -> iter:
-        yield from (f for f in fichiers_textes if 'compl' in f.stem)
+        yield from (f for f in self.fichiers_texte if 'compl' in f.stem)
 
     def extraire(self, fichiers: list[Path] = None, **défaut) -> DataFrame:
         if fichiers is None:
@@ -155,7 +156,7 @@ class FeuilleDeTemps:
         if colonne_max is None:
             colonne_max = self.colonne_max
 
-        cahier = openpyxl.load_workbook(fichier)
+        cahier = openpyxl.load_workbook(fichier_temps)
         feuille = cahier[nom_feuille]
 
         colonnes = [col.value for col in feuille[colonnes_excel][0]]
@@ -173,7 +174,7 @@ class FeuilleDeTemps:
             for col, cel in zip('ABCDEFGHIJK', ligne):
                 feuille[f'{col}{rangée_min+i}'] = cel
 
-        cahier.save(fichier)
+        cahier.save(fichier_temps)
 
         return tableau
 
@@ -199,7 +200,7 @@ class FeuilleDeTemps:
             présences.to_excel(excel, sheet_name='Présences')
 
         # Comme des fichiers ics pour le calendrier
-        for item in données.iterrows():
+        for _, item in données.iterrows():
             titre = '✅ ' + item['Description des travaux effectués']
             durée = datetime.timedelta(hours=item['Heures'])
             nouveau = self.calendrier.créer_événement(titre, moment, durée)
@@ -217,7 +218,7 @@ class FeuilleDeTemps:
         self.extraire()
         return self
 
-    def __exit__(self):
+    def __exit__(self, *args, **kargs):
         pass
 
 

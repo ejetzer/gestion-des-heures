@@ -8,11 +8,13 @@ Created on Mon Jul 26 13:09:01 2021.
 
 import configparser
 import tkinter
+import tkinter.messagebox
 import datetime
 import pathlib
 import os.path
 
-import mise_a_jour
+from calendrier import Calendrier
+from mise_a_jour import FeuilleDeTemps
 from git import Repository
 
 class Formulaire(tkinter.Frame):
@@ -20,14 +22,39 @@ class Formulaire(tkinter.Frame):
     def __init__(self, configuration, *args, **kargs):
         super().__init__(*args, **kargs)
         self.charger_configuration(configuration)
-        
+
         self.répertoire_local = Repository(pathlib.Path(self.config['Polytechnique']['Destination']).expanduser())
         self.répertoire_local.pull()
-        
+
         self.répertoire_distant = Repository(pathlib.Path(self.config['Polytechnique']['Réseau']).expanduser())
         self.répertoire_distant.pull()
-        
+
         self.créer_champs()
+
+    def màj(self):
+        self.bouton_maj.configure(fg='red', text='Mise à jour en cours...')
+
+        try:
+            cal_cfg = self.config['Calendrier']
+
+            racine = Path(cal_cfg['ics']).expanduser()
+            calendrier = Calendrier(cal_cfg['compte'], cal_cfg['cal'], racine)
+
+            with FeuilleDeTemps(calendrier, **self.config['Polytechnique']) as feuille:
+                self.bouton_maj.configure(fg='red', text='[1/4] Extraction en cours...')
+                feuille.extraire()
+                self.bouton_maj.configure(fg='red', text='[2/4] Enregistrement en cours...')
+                feuille.enregistrer()
+                self.bouton_maj.configure(fg='red', text='[3/4] Mise à jour en cours...')
+                feuille.màj()
+                self.bouton_maj.configure(fg='red', text='[4/4] Archivage en cours...')
+                feuille.archiver()
+        except Exception as e:
+            tkinter.messagebox.Message(f'Un problème s\'est produit: {e=}')
+
+        self.répertoire_local.commit('Màj automatique', '-a')
+        self.répertoire_distant.pull()
+        self.bouton_maj.configure(fg='green', text='Mettre à jour')
 
     def créer_champs(self):
         self.variables, self.entrées, self.étiquettes = {}, {}, {}
@@ -65,18 +92,11 @@ class Formulaire(tkinter.Frame):
         self.bouton_soumettre = tkinter.Button(text='Soumettre', command=soumettre)
         self.bouton_soumettre.grid(row=i+1, column=1, sticky='EW')
 
-        def màj():
-            self.bouton_maj.configure(fg='red', text='Mise à jour en cours...')
-            mise_a_jour.main(self.config)
-            self.répertoire_local.commit('Màj automatique', '-a')
-            self.répertoire_distant.pull()
-            self.bouton_maj.configure(fg='green', text='Mettre à jour')
-
-        self.bouton_maj = tkinter.Button(text='Mettre à jour', command=màj)
+        self.bouton_maj = tkinter.Button(text='Mettre à jour', command=lambda: self.màj())
         self.bouton_maj.grid(row=i+2, column=0, columnspan=2, sticky='EW')
         self.bouton_maj.configure(fg='green')
-        
-        self.after(1000* 60 * 60 * 8, màj)
+
+        self.after(1000* 60 * 60 * 8, lambda: self.màj())
 
 
     def ajouter_entrée(self, **kargs):
@@ -91,10 +111,10 @@ class Formulaire(tkinter.Frame):
         self.config = configparser.ConfigParser()
         self.config.optionxform = str
         self.config.read(fichier)
-    
+
     def destroy(self):
         self.bouton_maj.configure(fg='red')
-        mise_a_jour.main(self.config)
+        self.màj()
         self.répertoire_local.commit('Màj automatique', '-a')
         self.répertoire_distant.pull()
         self.répertoire_local.pull()
