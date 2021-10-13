@@ -13,6 +13,8 @@ import datetime
 import pathlib
 import os.path
 
+from pathlib import Path
+
 from calendrier import Calendrier
 from mise_a_jour import FeuilleDeTemps
 from git import Repository
@@ -50,7 +52,7 @@ class Formulaire(tkinter.Frame):
                 self.bouton_maj.configure(fg='red', text='[4/4] Archivage en cours...')
                 feuille.archiver()
         except Exception as e:
-            tkinter.messagebox.Message(f'Un problème s\'est produit: {e=}')
+            tkinter.messagebox.showerror('Un problème s\'est produit', f'{e}')
 
         self.répertoire_local.commit('Màj automatique', '-a')
         self.répertoire_distant.pull()

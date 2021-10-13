@@ -37,8 +37,7 @@ class FeuilleDeTemps:
     def __init__(self, calendrier: Calendrier, **config):
         self.config: dict[str, str] = config
         self.destination: Path = Path(self.config['Destination']).expanduser()
-        self.fichier_temps: Path = self.destination / \
-            self.config['TempsTechnicien']
+        self.fichier_temps: Path = self.destination / self.config['TempsTechnicien']
         self.archive: Path = Path(self.config['Archive']).expanduser()
         self.nom_feuille: str = self.config['Feuille']
         self.colonnes_excel: str = self.config['Colonnes Excel']
@@ -218,8 +217,8 @@ class FeuilleDeTemps:
         self.extraire()
         return self
 
-    def __exit__(self, *args, **kargs):
-        pass
+    def __exit__(self, exception_type, value, traceback):
+        return None
 
 
 def main(config):
