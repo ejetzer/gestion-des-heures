@@ -12,6 +12,7 @@ import tkinter.messagebox
 import datetime
 import pathlib
 import os.path
+import traceback
 
 from pathlib import Path
 
@@ -52,7 +53,8 @@ class Formulaire(tkinter.Frame):
                 self.bouton_maj.configure(fg='red', text='[4/4] Archivage en cours...')
                 feuille.archiver()
         except Exception as e:
-            tkinter.messagebox.showerror('Un problème s\'est produit', f'{e}')
+            détails = ''.join(traceback.format_tb(e.__traceback__))
+            tkinter.messagebox.showerror('Un problème s\'est produit', f'{type(e)}: {e}\n{détails}')
 
         self.répertoire_local.commit('Màj automatique', '-a')
         self.répertoire_distant.pull()

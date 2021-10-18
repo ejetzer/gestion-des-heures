@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.9
 # -*- coding: utf-8 -*-
 """
+Programme de mise à jour des heures pour Polytechnique.
+
 Created on Mon Jul 26 10:29:13 2021
 
 @author: emilejetzer
@@ -26,8 +28,23 @@ from pandas import DataFrame
 from calendrier import Calendrier
 
 
+def importations_heures(x):
+    if isinstance(x, str):
+        x = x.strip()
+
+        if ',' in x:
+            x = x.replace(',', '.')
+
+        if x.endswith('.'):
+            x = x + '0'
+
+    if not x:
+        x = 0
+
+    return float(x)
+
 fonctions_importation = {'Atelier': lambda x: bool(int('0' + str(x).strip())),
-                         'Heures': lambda x: float(str(x.replace(',', '.')) + '0'),
+                         'Heures': importations_heures,
                          'Payeur': lambda x: ', '.join(x.strip().split(' ')[::-1]),
                          'Description des travaux effectués': lambda x: x.strip('"'),
                          'Date': lambda x: datetime.datetime.fromisoformat(x).date()}
