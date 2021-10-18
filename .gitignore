@@ -11,3 +11,6 @@ script.sql
 __pycache__
 Archives/
 Configuration.txt
+màj*.xlsx
+*.ics
+
