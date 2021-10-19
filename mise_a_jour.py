@@ -152,7 +152,7 @@ class FeuilleDeTemps:
 
         return présences
 
-    def màj(self,
+    def charger(self,
             données: DataFrame = None,
             fichier_temps: Path = None,
             nom_feuille: str = None,
@@ -183,14 +183,48 @@ class FeuilleDeTemps:
                 valeurs[colonne].append(cellule)
 
         tableau = pandas.DataFrame(valeurs)
-        tableau = tableau.append(données)
-        tableau = tableau.sort_values('Date')
+        tableau.loc[:, 'Date'] = tableau.loc[:, 'Date'].map(lambda x: pandas.to_datetime(x).date())
+        tableau = tableau.sort_values('Date').drop_duplicates()
+        self.tableau = tableau
+
+        return tableau, cahier
+
+    def màj(self,
+            données: DataFrame = None,
+            fichier_temps: Path = None,
+            nom_feuille: str = None,
+            colonnes_excel: str = None,
+            rangée_min: int = None,
+            colonne_max: int = None) -> DataFrame:
+        if données is None:
+            données = self.données
+        if fichier_temps is None:
+            fichier_temps = self.fichier_temps
+        if nom_feuille is None:
+            nom_feuille = self.nom_feuille
+        if colonnes_excel is None:
+            colonnes_excel = self.colonnes_excel
+        if rangée_min is None:
+            rangée_min = self.rangée_min
+        if colonne_max is None:
+            colonne_max = self.colonne_max
+
+        tableau, cahier = self.charger(données, fichier_temps, nom_feuille, colonnes_excel, rangée_min, colonne_max)
+
+        if données is not None:
+            tableau = tableau.append(données)
+
+        tableau.loc[:, 'Date'] = tableau.loc[:, 'Date'].map(lambda x: pandas.to_datetime(x).date())
+        tableau = tableau.sort_values('Date').drop_duplicates()
 
         for i, ligne in enumerate(dataframe_to_rows(tableau, index=False, header=False)):
             for col, cel in zip('ABCDEFGHIJK', ligne):
                 feuille[f'{col}{rangée_min+i}'] = cel
 
         cahier.save(fichier_temps)
+
+        self.tableau = tableau
+        self.données = None
 
         return tableau
 
@@ -227,6 +261,10 @@ class FeuilleDeTemps:
     def archiver(self, *args, archive: Path = None):
         if archive is None:
             archive = self.archive
+
+        if len(args) == 0:
+            args = (self.fichiers_texte, self.fichiers_photo)
+
         for f in itertools.chain(*args):
             shutil.move(str(f), str(archive))
 
@@ -239,9 +277,7 @@ class FeuilleDeTemps:
 
 
 def main(config):
-    cfg = configparser.ConfigParser()
-    cfg.read('Configuration.txt')
-    cal_cfg = cfg['Calendrier']
+    cal_cfg = config['Calendrier']
 
     racine = Path(cal_cfg['ics']).expanduser()
     calendrier = Calendrier(cal_cfg['compte'], cal_cfg['cal'], racine)

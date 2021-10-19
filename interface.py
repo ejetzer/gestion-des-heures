@@ -45,7 +45,6 @@ class Formulaire(tkinter.Frame):
 
             with FeuilleDeTemps(calendrier, **self.config['Polytechnique']) as feuille:
                 self.bouton_maj.configure(fg='red', text='[1/4] Extraction en cours...')
-                feuille.extraire()
                 self.bouton_maj.configure(fg='red', text='[2/4] Enregistrement en cours...')
                 feuille.enregistrer()
                 self.bouton_maj.configure(fg='red', text='[3/4] Mise à jour en cours...')
