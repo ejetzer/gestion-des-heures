@@ -187,7 +187,7 @@ class FeuilleDeTemps:
         tableau = tableau.sort_values('Date').drop_duplicates()
         self.tableau = tableau
 
-        return tableau, cahier
+        return tableau, cahier, feuille
 
     def màj(self,
             données: DataFrame = None,
@@ -209,7 +209,7 @@ class FeuilleDeTemps:
         if colonne_max is None:
             colonne_max = self.colonne_max
 
-        tableau, cahier = self.charger(données, fichier_temps, nom_feuille, colonnes_excel, rangée_min, colonne_max)
+        tableau, cahier, feuille = self.charger(données, fichier_temps, nom_feuille, colonnes_excel, rangée_min, colonne_max)
 
         if données is not None:
             tableau = tableau.append(données)

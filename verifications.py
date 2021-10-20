@@ -22,28 +22,36 @@ from pandas import Series, DataFrame
 from mise_a_jour import FeuilleDeTemps
 from calendrier import Calendrier
 
-class AvertissementAdministratif(UserWarning):
 
-    def __init__(self, rangée: Series, *args, **kargs):
-        super().__init__(*args, **kargs)
+class AvertissementAdministratif(UserWarning):
+    pass
 
 class TravailLaFinDeSemaine(AvertissementAdministratif):
     pass
 
-class JourTropCourt(AvertissementAdministratif):
+class AvertissementQuotidien(AvertissementAdministratif):
     pass
 
-class JourTropLong(AvertissementAdministratif):
+class JourTropCourt(AvertissementQuotidien):
     pass
 
-class SemaineTropCourte(AvertissementAdministratif):
+class JourTropLong(AvertissementQuotidien):
     pass
 
-class SemaineTropLongue(AvertissementAdministratif):
+class AvertissementHebdomadaire(AvertissementAdministratif):
     pass
 
-class Doublon(AvertissementAdministratif):
+class SemaineTropCourte(AvertissementHebdomadaire):
     pass
+
+class SemaineTropLongue(AvertissementHebdomadaire):
+    pass
+
+avertissements = [TravailLaFinDeSemaine,
+                  JourTropCourt,
+                  JourTropLong,
+                  SemaineTropCourte,
+                  SemaineTropLongue]
 
 
 
@@ -81,12 +89,14 @@ def au_plus_quarante_cinq_heures_par_semaine(feuille: DataFrame):
     heures_trop = heures_hebdomadaires.loc[trop, :]
     return heures_trop
 
+vérifications = [pas_de_travail_la_fin_de_semaine,
+                 au_moins_sept_heures_par_jour,
+                 au_plus_dix_heures_par_jour,
+                 au_moins_trente_heures_par_semaine,
+                 au_plus_quarante_cinq_heures_par_semaine]
 
-if __name__ == '__main__':
-    cfg = configparser.ConfigParser()
-    cfg.optionxform = str
-    cfg.read('Configuration.txt')
 
+def main(cfg):
     cal_cfg = cfg['Calendrier']
     racine = Path(cal_cfg['ics']).expanduser()
     calendrier = Calendrier(cal_cfg['compte'], cal_cfg['cal'], racine)
@@ -94,8 +104,14 @@ if __name__ == '__main__':
     with FeuilleDeTemps(calendrier, **cfg['Polytechnique']) as feuille:
         feuille.charger()
 
-        print(pas_de_travail_la_fin_de_semaine(feuille.tableau))
-        print(au_moins_sept_heures_par_jour(feuille.tableau))
-        print(au_plus_dix_heures_par_jour(feuille.tableau))
-        print(au_moins_trente_heures_par_semaine(feuille.tableau))
-        print(au_plus_quarante_cinq_heures_par_semaine(feuille.tableau))
+        for test, avertissement in zip(vérifications, avertissements):
+            résultat = test(feuille.tableau)
+            for i, ligne in résultat.iterrows():
+                warnings.warn(f'{ligne}', avertissement)
+
+if __name__ == '__main__':
+    cfg = configparser.ConfigParser()
+    cfg.optionxform = str
+    cfg.read('Configuration.txt')
+
+    main(cfg)

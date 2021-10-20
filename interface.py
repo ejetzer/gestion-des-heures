@@ -19,6 +19,7 @@ from pathlib import Path
 from calendrier import Calendrier
 from mise_a_jour import FeuilleDeTemps
 from git import Repository
+from verifications import avertissements, vérifications
 
 class Formulaire(tkinter.Frame):
 
@@ -33,6 +34,7 @@ class Formulaire(tkinter.Frame):
         self.répertoire_distant.pull()
 
         self.créer_champs()
+        self.màj()
 
     def màj(self):
         self.bouton_maj.configure(fg='red', text='Mise à jour en cours...')
@@ -51,13 +53,21 @@ class Formulaire(tkinter.Frame):
                 feuille.màj()
                 self.bouton_maj.configure(fg='red', text='[4/4] Archivage en cours...')
                 feuille.archiver()
+
+                for test, avertissement in zip(vérifications, avertissements):
+                    résultat = test(feuille.tableau)
+                    for i, ligne in résultat.iterrows():
+                        tkinter.messagebox.showinfo('Possible entrée incorrecte', str(ligne))
+                        #warnings.warn(f'{ligne}', avertissement)
         except Exception as e:
             détails = ''.join(traceback.format_tb(e.__traceback__))
-            tkinter.messagebox.showerror('Un problème s\'est produit', f'{type(e)}: {e}\n{détails}')
+            tkinter.messagebox.showerror('Un problème s\'est produit', détails)
 
         self.répertoire_local.commit('Màj automatique', '-a')
         self.répertoire_distant.pull()
         self.bouton_maj.configure(fg='green', text='Mettre à jour')
+
+        self.dernière_maj.configure(text=f'{datetime.datetime.now()}')
 
     def créer_champs(self):
         self.variables, self.entrées, self.étiquettes = {}, {}, {}
@@ -98,6 +108,9 @@ class Formulaire(tkinter.Frame):
         self.bouton_maj = tkinter.Button(text='Mettre à jour', command=lambda: self.màj())
         self.bouton_maj.grid(row=i+2, column=0, columnspan=2, sticky='EW')
         self.bouton_maj.configure(fg='green')
+
+        self.dernière_maj = tkinter.Label(text=f'{datetime.datetime.now()}')
+        self.dernière_maj.grid(row=i+3, column=0, columnspan=2, sticky='EW')
 
         self.after(1000* 60 * 60 * 8, lambda: self.màj())
 
