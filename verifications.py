@@ -59,6 +59,7 @@ def pas_de_travail_la_fin_de_semaine(feuille: DataFrame):
     heures_quotidiennes = feuille.loc[:, ['Date', 'Heures']].groupby('Date').sum()
     fds = heures_quotidiennes.index.map(lambda x: x.weekday() in [5, 6])
     heures_fds = heures_quotidiennes.loc[fds, :]
+    heures_fds = heures_fds.assign(Avertissement='Travail la fin de semaine')
     return heures_fds
 
 def au_moins_sept_heures_par_jour(feuille: DataFrame):
@@ -67,6 +68,7 @@ def au_moins_sept_heures_par_jour(feuille: DataFrame):
     heures_sem = heures_quotidiennes.loc[sem, :]
     peu = heures_sem.Heures < 7
     heures_peu = heures_sem.loc[peu, :]
+    heures_peu = heures_peu.assign(Avertissement='Peu d\'heures dans une journée')
     return heures_peu
 
 def au_plus_dix_heures_par_jour(feuille: DataFrame):
@@ -75,18 +77,21 @@ def au_plus_dix_heures_par_jour(feuille: DataFrame):
     heures_sem = heures_quotidiennes.loc[sem, :]
     trop = heures_sem.Heures > 10
     heures_trop = heures_sem.loc[trop, :]
+    heures_trop = heures_trop.assign(Avertissement='Trop d\'heures dans une journée')
     return heures_trop
 
 def au_moins_trente_heures_par_semaine(feuille: DataFrame):
     heures_hebdomadaires = feuille.loc[:, ['Date', 'Heures']].groupby(lambda x: feuille.at[x, 'Date'].isocalendar().week).sum()
     peu = heures_hebdomadaires.Heures < 30
     heures_peu = heures_hebdomadaires.loc[peu, :]
+    heures_peu = heures_peu.assign(Avertissement='Peu d\'heures dans une semaine')
     return heures_peu
 
 def au_plus_quarante_cinq_heures_par_semaine(feuille: DataFrame):
     heures_hebdomadaires = feuille.loc[:, ['Date', 'Heures']].groupby(lambda x: feuille.at[x, 'Date'].isocalendar().week).sum()
     trop = heures_hebdomadaires.Heures > 45
     heures_trop = heures_hebdomadaires.loc[trop, :]
+    heures_trop = heures_trop.assign(Avertissement='Trop d\'heures dans une semaine')
     return heures_trop
 
 vérifications = [pas_de_travail_la_fin_de_semaine,

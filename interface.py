@@ -38,6 +38,7 @@ class Formulaire(tkinter.Frame):
 
     def màj(self):
         self.bouton_maj.configure(fg='red', text='Mise à jour en cours...')
+        self.répertoire_local.pull()
 
         try:
             cal_cfg = self.config['Calendrier']
@@ -48,22 +49,35 @@ class Formulaire(tkinter.Frame):
             with FeuilleDeTemps(calendrier, **self.config['Polytechnique']) as feuille:
                 self.bouton_maj.configure(fg='red', text='[1/4] Extraction en cours...')
                 self.bouton_maj.configure(fg='red', text='[2/4] Enregistrement en cours...')
-                feuille.enregistrer()
+
+                try:
+                    feuille.enregistrer()
+                except ValueError:
+                    pass
+
                 self.bouton_maj.configure(fg='red', text='[3/4] Mise à jour en cours...')
                 feuille.màj()
                 self.bouton_maj.configure(fg='red', text='[4/4] Archivage en cours...')
                 feuille.archiver()
 
+                rés = None
+                feuille.charger()
+                mois_courant = feuille.tableau.loc[:, 'Date'].apply(lambda x: x.month == datetime.date.today().month)
+                tab = feuille.tableau.loc[mois_courant, :]
                 for test, avertissement in zip(vérifications, avertissements):
-                    résultat = test(feuille.tableau)
-                    for i, ligne in résultat.iterrows():
-                        tkinter.messagebox.showinfo('Possible entrée incorrecte', str(ligne))
-                        #warnings.warn(f'{ligne}', avertissement)
+                    if rés is None:
+                        rés = test(tab)
+                    else:
+                        rés = rés.append(test(tab))
+
+                with open('erreurs.txt', 'w') as f:
+                    print(rés, file=f)
         except Exception as e:
             détails = ''.join(traceback.format_tb(e.__traceback__))
             tkinter.messagebox.showerror('Un problème s\'est produit', détails)
 
         self.répertoire_local.commit('Màj automatique', '-a')
+        self.répertoire_local.push()
         self.répertoire_distant.pull()
         self.bouton_maj.configure(fg='green', text='Mettre à jour')
 
