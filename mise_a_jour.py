@@ -28,6 +28,11 @@ from pandas import DataFrame
 from calendrier import Calendrier
 
 
+def assainir_nom(nom):
+    'Assainit un nom de fichier (sans l\'extension)'
+    return ''.join([('_' if x in '_:/' else x) for x in nom])
+
+
 def importations_heures(x):
     if isinstance(x, str):
         x = x.strip()
@@ -43,24 +48,28 @@ def importations_heures(x):
 
     return float(x)
 
+
 fonctions_importation = {'Atelier': lambda x: bool(int('0' + str(x).strip())),
                          'Heures': importations_heures,
                          'Payeur': lambda x: ', '.join(x.strip().split(' ')[::-1]),
                          'Description des travaux effectués': lambda x: x.strip('"'),
                          'Date': lambda x: datetime.datetime.fromisoformat(x).date()}
 
+
 class FeuilleDeTemps:
 
     def __init__(self, calendrier: Calendrier, **config):
         self.config: dict[str, str] = config
         self.destination: Path = Path(self.config['Destination']).expanduser()
-        self.fichier_temps: Path = self.destination / self.config['TempsTechnicien']
+        self.fichier_temps: Path = self.destination / \
+            self.config['TempsTechnicien']
         self.archive: Path = Path(self.config['Archive']).expanduser()
         self.nom_feuille: str = self.config['Feuille']
         self.colonnes_excel: str = self.config['Colonnes Excel']
         self.rangée_min: int = int(self.config['Première rangée'])
         self.colonne_max: int = int(self.config['Dernière colonne'])
-        self.boîte_de_dépôt: Path = Path(self.config['Boîte de dépôt']).expanduser()
+        self.boîte_de_dépôt: Path = Path(
+            self.config['Boîte de dépôt']).expanduser()
 
         self.calendrier = calendrier
         self.données = None
@@ -153,12 +162,12 @@ class FeuilleDeTemps:
         return présences
 
     def charger(self,
-            données: DataFrame = None,
-            fichier_temps: Path = None,
-            nom_feuille: str = None,
-            colonnes_excel: str = None,
-            rangée_min: int = None,
-            colonne_max: int = None) -> DataFrame:
+                données: DataFrame = None,
+                fichier_temps: Path = None,
+                nom_feuille: str = None,
+                colonnes_excel: str = None,
+                rangée_min: int = None,
+                colonne_max: int = None) -> DataFrame:
         if données is None:
             données = self.données
         if fichier_temps is None:
@@ -183,7 +192,8 @@ class FeuilleDeTemps:
                 valeurs[colonne].append(cellule)
 
         tableau = pandas.DataFrame(valeurs)
-        tableau.loc[:, 'Date'] = tableau.loc[:, 'Date'].map(lambda x: pandas.to_datetime(x).date())
+        tableau.loc[:, 'Date'] = tableau.loc[:, 'Date'].map(
+            lambda x: pandas.to_datetime(x).date())
         tableau = tableau.sort_values('Date').drop_duplicates()
         self.tableau = tableau
 
@@ -209,15 +219,20 @@ class FeuilleDeTemps:
         if colonne_max is None:
             colonne_max = self.colonne_max
 
-        tableau, cahier, feuille = self.charger(données, fichier_temps, nom_feuille, colonnes_excel, rangée_min, colonne_max)
+        tableau, cahier, feuille = self.charger(
+            données, fichier_temps, nom_feuille,
+            colonnes_excel, rangée_min, colonne_max)
 
         if données is not None:
             tableau = tableau.append(données)
 
-        tableau.loc[:, 'Date'] = tableau.loc[:, 'Date'].map(lambda x: pandas.to_datetime(x).date())
+        tableau.loc[:, 'Date'] = tableau.loc[:, 'Date'].map(
+            lambda x: pandas.to_datetime(x).date())
         tableau = tableau.sort_values('Date').drop_duplicates()
 
-        for i, ligne in enumerate(dataframe_to_rows(tableau, index=False, header=False)):
+        for i, ligne in enumerate(dataframe_to_rows(tableau,
+                                                    index=False,
+                                                    header=False)):
             for col, cel in zip('ABCDEFGHIJK', ligne):
                 feuille[f'{col}{rangée_min+i}'] = cel
 
@@ -251,10 +266,12 @@ class FeuilleDeTemps:
 
         # Comme des fichiers ics pour le calendrier
         for _, item in données.iterrows():
-            titre = '✅ ' + item['Description des travaux effectués']
+            titre = '✅ ' + \
+                assainir_nom(item['Description des travaux effectués'])
             durée = datetime.timedelta(hours=item['Heures'])
             nouveau = self.calendrier.créer_événement(titre, moment, durée)
-            fichier = destination / f'màj {moment:%Y-%m-%d %H_%M} {titre[2:]}.ics'
+            fichier = destination / \
+                f'màj {moment:%Y-%m-%d %H_%M} {titre[2:]}.ics'
             with fichier.open('w') as f:
                 f.write(str(nouveau))
 

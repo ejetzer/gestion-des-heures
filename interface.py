@@ -21,16 +21,19 @@ from mise_a_jour import FeuilleDeTemps
 from git import Repository
 from verifications import avertissements, vérifications
 
+
 class Formulaire(tkinter.Frame):
 
     def __init__(self, configuration, *args, **kargs):
         super().__init__(*args, **kargs)
         self.charger_configuration(configuration)
 
-        self.répertoire_local = Repository(pathlib.Path(self.config['Polytechnique']['Destination']).expanduser())
+        self.répertoire_local = Repository(pathlib.Path(
+            self.config['Polytechnique']['Destination']).expanduser())
         self.répertoire_local.pull()
 
-        self.répertoire_distant = Repository(pathlib.Path(self.config['Polytechnique']['Réseau']).expanduser())
+        self.répertoire_distant = Repository(pathlib.Path(
+            self.config['Polytechnique']['Réseau']).expanduser())
         self.répertoire_distant.pull()
 
         self.créer_champs()
@@ -47,22 +50,27 @@ class Formulaire(tkinter.Frame):
             calendrier = Calendrier(cal_cfg['compte'], cal_cfg['cal'], racine)
 
             with FeuilleDeTemps(calendrier, **self.config['Polytechnique']) as feuille:
-                self.bouton_maj.configure(fg='red', text='[1/4] Extraction en cours...')
-                self.bouton_maj.configure(fg='red', text='[2/4] Enregistrement en cours...')
+                self.bouton_maj.configure(
+                    fg='red', text='[1/4] Extraction en cours...')
+                self.bouton_maj.configure(
+                    fg='red', text='[2/4] Enregistrement en cours...')
 
                 try:
                     feuille.enregistrer()
                 except ValueError:
                     pass
 
-                self.bouton_maj.configure(fg='red', text='[3/4] Mise à jour en cours...')
+                self.bouton_maj.configure(
+                    fg='red', text='[3/4] Mise à jour en cours...')
                 feuille.màj()
-                self.bouton_maj.configure(fg='red', text='[4/4] Archivage en cours...')
+                self.bouton_maj.configure(
+                    fg='red', text='[4/4] Archivage en cours...')
                 feuille.archiver()
 
                 rés = None
                 feuille.charger()
-                mois_courant = feuille.tableau.loc[:, 'Date'].apply(lambda x: x.month == datetime.date.today().month)
+                mois_courant = feuille.tableau.loc[:, 'Date'].apply(
+                    lambda x: x.month == datetime.date.today().month)
                 tab = feuille.tableau.loc[mois_courant, :]
                 for test, avertissement in zip(vérifications, avertissements):
                     if rés is None:
@@ -73,8 +81,11 @@ class Formulaire(tkinter.Frame):
                 with open('erreurs.txt', 'w') as f:
                     print(rés, file=f)
         except Exception as e:
-            détails = ''.join(traceback.format_tb(e.__traceback__))
+            détails = ''.join(traceback.format_exception(
+                type(e), e, e.__traceback__))
             tkinter.messagebox.showerror('Un problème s\'est produit', détails)
+            import sys
+            print(détails, file=sys.stdout)
 
         self.répertoire_local.commit('Màj automatique', '-a')
         self.répertoire_local.push()
@@ -113,25 +124,29 @@ class Formulaire(tkinter.Frame):
         self.bouton_effacer.grid(row=i+1, column=0, sticky='EW')
 
         def soumettre():
-            self.ajouter_entrée(**{c: v.get() for c, v in self.variables.items()})
+            self.ajouter_entrée(**{c: v.get()
+                                for c, v in self.variables.items()})
             effacer()
 
-        self.bouton_soumettre = tkinter.Button(text='Soumettre', command=soumettre)
+        self.bouton_soumettre = tkinter.Button(
+            text='Soumettre', command=soumettre)
         self.bouton_soumettre.grid(row=i+1, column=1, sticky='EW')
 
-        self.bouton_maj = tkinter.Button(text='Mettre à jour', command=lambda: self.màj())
+        self.bouton_maj = tkinter.Button(
+            text='Mettre à jour', command=lambda: self.màj())
         self.bouton_maj.grid(row=i+2, column=0, columnspan=2, sticky='EW')
         self.bouton_maj.configure(fg='green')
 
         self.dernière_maj = tkinter.Label(text=f'{datetime.datetime.now()}')
         self.dernière_maj.grid(row=i+3, column=0, columnspan=2, sticky='EW')
 
-        self.after(1000* 60 * 60 * 8, lambda: self.màj())
-
+        self.after(1000 * 60 * 60 * 8, lambda: self.màj())
 
     def ajouter_entrée(self, **kargs):
-        maintenant = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-4)))
-        nouveau_fichier = pathlib.Path(os.path.expanduser(self.config['Polytechnique']['Boîte de dépôt'])) / f'{maintenant:%Y-%m-%dT%H_%M_%S%z} Tâche complétée.txt'
+        maintenant = datetime.datetime.now(
+            datetime.timezone(datetime.timedelta(hours=-4)))
+        nouveau_fichier = pathlib.Path(os.path.expanduser(
+            self.config['Polytechnique']['Boîte de dépôt'])) / f'{maintenant:%Y-%m-%dT%H_%M_%S%z} Tâche complétée.txt'
 
         texte = ''.join(f'{c}: {v}\n' for c, v in kargs.items())
         with nouveau_fichier.open('w') as doc:
