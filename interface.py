@@ -16,6 +16,8 @@ import traceback
 
 from pathlib import Path
 
+import disque_reseau
+
 from calendrier import Calendrier
 from mise_a_jour import FeuilleDeTemps
 from git import Repository
@@ -28,19 +30,29 @@ class Formulaire(tkinter.Frame):
         super().__init__(*args, **kargs)
         self.charger_configuration(configuration)
 
-        self.répertoire_local = Repository(pathlib.Path(
-            self.config['Polytechnique']['Destination']).expanduser())
+        disque_reseau.connecter(**self.config['Volumes'])
+
+        chemin_local = pathlib.Path(
+            self.config['Polytechnique']['Destination']).expanduser().resolve()
+        print(f'{chemin_local=}')
+        self.répertoire_local = Repository(chemin_local)
         self.répertoire_local.pull()
 
-        self.répertoire_distant = Repository(pathlib.Path(
-            self.config['Polytechnique']['Réseau']).expanduser())
+        chemin_distant = pathlib.Path(
+            self.config['Polytechnique']['Réseau']).expanduser().resolve()
+        print(f'{chemin_distant=}')
+        self.répertoire_distant = Repository(chemin_distant)
         self.répertoire_distant.pull()
+
+        disque_reseau.déconnecter(**self.config['Volumes'])
 
         self.créer_champs()
         self.màj()
 
     def màj(self):
         self.bouton_maj.configure(fg='red', text='Mise à jour en cours...')
+        disque_reseau.connecter(**self.config['Volumes'])
+
         self.répertoire_local.pull()
 
         try:
@@ -93,6 +105,8 @@ class Formulaire(tkinter.Frame):
         self.bouton_maj.configure(fg='green', text='Mettre à jour')
 
         self.dernière_maj.configure(text=f'{datetime.datetime.now()}')
+
+        disque_reseau.déconnecter(**self.config['Volumes'])
 
     def créer_champs(self):
         self.variables, self.entrées, self.étiquettes = {}, {}, {}
@@ -160,9 +174,13 @@ class Formulaire(tkinter.Frame):
     def destroy(self):
         self.bouton_maj.configure(fg='red')
         self.màj()
+
+        disque_reseau.connecter(**self.config['Volumes'])
         self.répertoire_local.commit('Màj automatique', '-a')
         self.répertoire_distant.pull()
         self.répertoire_local.pull()
+        disque_reseau.déconnecter(**self.config['Volumes'])
+
         super().destroy()
 
 
